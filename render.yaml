@@ -1,0 +1,16 @@
+# Render Blueprint: static site (HTML + photo.png, no Node/Python runtime)
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: really-me
+    runtime: static
+    branch: main
+    buildCommand: "true"
+    staticPublishPath: ./
+    routes:
+      - type: rewrite
+        source: /
+        destination: /66k4wmz.html
+    envVars:
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
