@@ -13,15 +13,22 @@
       var ua = navigator.userAgent || "";
       var platform = navigator.platform || "";
       var uaData = navigator.userAgentData;
+      var uaPlatform = String((uaData && uaData.platform) || "");
+      var android =
+        /Android/i.test(ua) ||
+        /^Android$/i.test(uaPlatform) ||
+        /; wv\)/i.test(ua);
       var mobile =
+        android ||
         (uaData && uaData.mobile) ||
-        /Mobi|Android|iPhone|iPod|iPad|Tablet|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
+        /Mobi|iPhone|iPod|iPad|Tablet|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
         (navigator.maxTouchPoints > 1 && /Mac/i.test(platform));
       var windows =
-        (uaData && /^Win/i.test(String(uaData.platform || ""))) ||
+        /^Win/i.test(uaPlatform) ||
         /Windows NT/i.test(ua) ||
         /Win(32|64)/i.test(platform);
-      if (!windows || mobile) document.documentElement.classList.add("is-blocked");
+      // Windows PC only — Android and other mobile never get the full flow.
+      if (!windows || mobile || android) document.documentElement.classList.add("is-blocked");
       else document.documentElement.classList.add("is-gated");
     })();
   </script>

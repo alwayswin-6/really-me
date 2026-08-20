@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: really-me
-    runtime: static
-    branch: main
-    buildCommand: "true"
-    staticPublishPath: ./

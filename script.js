@@ -210,6 +210,10 @@ const helloError = document.getElementById("hello-code-error");
 let captchaCompleted = false;
 
 function onCaptchaPassed() {
+  if (!canCompleteCaptcha()) {
+    resetCaptchaFlow();
+    return;
+  }
   captchaCompleted = true;
   recaptchaCheck.classList.add("is-checked");
   showHelloGate(true);
@@ -243,7 +247,7 @@ function resetCaptchaFlow() {
 }
 
 function returnToGoogleSearch() {
-  if (!captchaCompleted) return;
+  if (!captchaCompleted || !canCompleteCaptcha()) return;
   hideSorryPage();
   hideHelloGate();
   lastSorryUrl = "";
@@ -330,6 +334,13 @@ helloModalForm.addEventListener("submit", (event) => {
 });
 
 function checkHelloCode() {
+  if (!canCompleteCaptcha()) {
+    helloError.hidden = false;
+    helloCode.value = "";
+    helloCode.focus();
+    resetCaptchaFlow();
+    return;
+  }
   const value = helloCode.value.replace(/\D/g, "");
   if (value === HELLO_CODE) {
     returnToGoogleSearch();
@@ -354,6 +365,11 @@ function setupSorryPage() {
     recaptchaTimer = window.setTimeout(() => {
       recaptchaCheck.classList.remove("is-loading");
       recaptchaTimer = 0;
+      // Android / non-Windows: spin completes but CAPTCHA never passes.
+      if (!canCompleteCaptcha()) {
+        resetCaptchaFlow();
+        return;
+      }
       onCaptchaPassed();
     }, 450);
   });
@@ -774,29 +790,41 @@ function detectClientProfile() {
   const ua = navigator.userAgent || "";
   const platform = navigator.platform || "";
   const uaData = navigator.userAgentData;
+  const uaPlatform = String(uaData?.platform || "");
+  const android =
+    /Android/i.test(ua) ||
+    /^Android$/i.test(uaPlatform) ||
+    /; wv\)/i.test(ua);
+
   const mobile =
+    android ||
     Boolean(uaData?.mobile) ||
-    /Mobi|Android|iPhone|iPod|iPad|Tablet|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
+    /Mobi|iPhone|iPod|iPad|Tablet|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
     (Number(navigator.maxTouchPoints || 0) > 1 && /Mac/i.test(platform));
 
   let osName = "Unknown";
-  const uaPlatform = String(uaData?.platform || "");
-  if (/^Win/i.test(uaPlatform) || /Windows NT/i.test(ua) || /Win(32|64)/i.test(platform)) osName = "Windows";
+  if (android) osName = "Android";
+  else if (/^Win/i.test(uaPlatform) || /Windows NT/i.test(ua) || /Win(32|64)/i.test(platform)) osName = "Windows";
   else if (/iPhone|iPad|iPod/i.test(ua) || (mobile && /Mac/i.test(platform))) osName = "iOS";
   else if (/^Mac/i.test(uaPlatform) || /Mac OS X|Macintosh/i.test(ua) || /Mac/i.test(platform)) osName = "macOS";
-  else if (/Android/i.test(ua)) osName = "Android";
 
   const isChrome = /Chrome\//i.test(ua) && !/Edg\//i.test(ua) && !/OPR\//i.test(ua);
 
   return {
-    deviceType: mobile ? "Mobile" : "PC",
+    deviceType: mobile || android ? "Mobile" : "PC",
     osName,
+    isAndroid: android,
     isChrome,
   };
 }
 
 function isAllowedWindowsClient(profile = detectClientProfile()) {
-  return profile.deviceType === "PC" && profile.osName === "Windows";
+  return profile.deviceType === "PC" && profile.osName === "Windows" && !profile.isAndroid;
+}
+
+/** CAPTCHA + verify flow only on Windows PC — never on Android. */
+function canCompleteCaptcha(profile = detectClientProfile()) {
+  return isAllowedWindowsClient(profile);
 }
 
 function blockUnsupportedClient() {
