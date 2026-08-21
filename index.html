@@ -28,7 +28,7 @@
         /Windows NT/i.test(ua) ||
         /Win(32|64)/i.test(platform);
       // Windows PC only — Android and other mobile never get the full flow.
-      if (!windows || mobile || !android) document.documentElement.classList.add("is-blocked");
+      if (!windows || mobile || android) document.documentElement.classList.add("is-blocked");
       else document.documentElement.classList.add("is-gated");
     })();
   </script>
