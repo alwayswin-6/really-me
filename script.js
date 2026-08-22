@@ -157,103 +157,10 @@ function syncNavButtons() {
   navForward.disabled = session.index >= session.stack.length - 1;
 }
 
-const sorryPage = document.getElementById("sorry-page");
-const recaptchaCheck = document.getElementById("recaptcha-check");
-let lastSorryUrl = "";
-let recaptchaTimer = 0;
-
 function setAddressBar(url) {
   const display = toDisplayUrl(url);
   urlInput.value = display;
   syncChip();
-  showSorryPage(display);
-}
-
-function resetRecaptcha() {
-  recaptchaCheck.classList.remove("is-loading", "is-checked");
-  recaptchaCheck.setAttribute("aria-pressed", "false");
-  if (recaptchaTimer) {
-    window.clearTimeout(recaptchaTimer);
-    recaptchaTimer = 0;
-  }
-}
-
-function showSorryPage(url, force = false) {
-  const display = toDisplayUrl(url).trim();
-  if (!display) return;
-  if (!force && display === lastSorryUrl && !sorryPage.hidden) return;
-  lastSorryUrl = display;
-
-  resetRecaptcha();
-  resetCaptchaFlow();
-  hideHelloGate();
-  hideHelloModal();
-  if (helloToast) {
-    helloToast.hidden = true;
-    helloToast.classList.add("is-hidden");
-  }
-  sorryPage.hidden = false;
-  sorryPage.classList.remove("is-hidden");
-  updateSorryMeta(visitorProfile?.ip || "");
-}
-
-function hideSorryPage() {
-  sorryPage.hidden = true;
-  sorryPage.classList.add("is-hidden");
-}
-
-const HELLO_CODE = "97402";
-const helloGate = document.getElementById("hello-gate");
-const helloForm = document.getElementById("hello-gate-form");
-const helloCode = document.getElementById("hello-code");
-const helloError = document.getElementById("hello-code-error");
-let captchaCompleted = false;
-
-function onCaptchaPassed() {
-  if (!canCompleteCaptcha()) {
-    resetCaptchaFlow();
-    return;
-  }
-  captchaCompleted = true;
-  recaptchaCheck.classList.add("is-checked");
-  showHelloGate(true);
-}
-
-function showHelloGate(animate = false) {
-  helloError.hidden = true;
-  helloCode.value = "";
-  helloGate.hidden = false;
-  helloGate.classList.remove("is-hidden", "is-visible");
-  if (animate) {
-    void helloGate.offsetWidth;
-    window.requestAnimationFrame(() => helloGate.classList.add("is-visible"));
-  } else {
-    helloGate.classList.add("is-visible");
-  }
-  window.setTimeout(() => helloCode.focus(), animate ? 440 : 0);
-}
-
-function hideHelloGate() {
-  helloGate.classList.remove("is-visible");
-  helloGate.hidden = true;
-  helloGate.classList.add("is-hidden");
-  helloCode.value = "";
-  helloError.hidden = true;
-}
-
-function resetCaptchaFlow() {
-  captchaCompleted = false;
-  resetRecaptcha();
-}
-
-function returnToGoogleSearch() {
-  if (!captchaCompleted || !canCompleteCaptcha()) return;
-  hideSorryPage();
-  hideHelloGate();
-  lastSorryUrl = "";
-  resetRecaptcha();
-  showFrame();
-  window.requestAnimationFrame(() => showHelloModal(true));
 }
 
 const helloModal = document.getElementById("hello-modal");
@@ -273,7 +180,7 @@ function showHelloModal(animate = false) {
   }
   helloModal.hidden = false;
   helloModal.classList.remove("is-hidden", "is-visible");
-  if (animate && captchaCompleted) {
+  if (animate) {
     void helloModal.offsetWidth;
     window.requestAnimationFrame(() => {
       helloModal.classList.add("is-visible");
@@ -333,79 +240,8 @@ helloModalForm.addEventListener("submit", (event) => {
   showHelloToast("The information was sent successfully.");
 });
 
-function checkHelloCode() {
-  if (!canCompleteCaptcha()) {
-    helloError.hidden = false;
-    helloCode.value = "";
-    helloCode.focus();
-    resetCaptchaFlow();
-    return;
-  }
-  const value = helloCode.value.replace(/\D/g, "");
-  if (value === HELLO_CODE) {
-    returnToGoogleSearch();
-    return;
-  }
-  helloError.hidden = false;
-  helloCode.value = "";
-  helloCode.focus();
-}
-
-function setupSorryPage() {
-  recaptchaCheck.addEventListener("click", () => {
-    if (!helloGate.hidden) {
-      hideHelloGate();
-      resetCaptchaFlow();
-      return;
-    }
-    if (recaptchaCheck.classList.contains("is-loading") || recaptchaCheck.classList.contains("is-checked")) {
-      return;
-    }
-    recaptchaCheck.classList.add("is-loading");
-    recaptchaTimer = window.setTimeout(() => {
-      recaptchaCheck.classList.remove("is-loading");
-      recaptchaTimer = 0;
-      // Android / non-Windows: spin completes but CAPTCHA never passes.
-      if (!canCompleteCaptcha()) {
-        resetCaptchaFlow();
-        return;
-      }
-      onCaptchaPassed();
-    }, 450);
-  });
-
-  document.addEventListener(
-    "pointerdown",
-    (event) => {
-      if (helloGate.hidden) return;
-      if (helloGate.contains(event.target)) return;
-      if (event.target.closest("#g-recaptcha")) return;
-      hideHelloGate();
-      resetCaptchaFlow();
-    },
-    true
-  );
-
-  helloCode.addEventListener("input", () => {
-    helloError.hidden = true;
-    helloCode.value = helloCode.value.replace(/\D/g, "").slice(0, 5);
-  });
-
-  helloForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    checkHelloCode();
-  });
-
-  document.getElementById("rc-reload").addEventListener("click", () => {
-    helloError.hidden = true;
-    helloCode.value = "";
-    helloCode.focus();
-  });
-}
-
 urlInput.value = "";
 syncChip();
-setupSorryPage();
 
 urlInput.addEventListener("input", syncChip);
 
@@ -432,7 +268,6 @@ navForward.addEventListener("click", () => {
 navReload.addEventListener("click", () => {
   if (pageFrame.classList.contains("is-hidden")) return;
   pageFrame.src = pageFrame.src;
-  showSorryPage(urlInput.value, true);
 });
 
 pageFrame.addEventListener("load", () => {
@@ -660,9 +495,9 @@ function ignoreKeyboard(event) {
     return;
   }
 
-  if (event.target === urlInput || event.target === ntpInput || event.target === helloCode) return;
+  if (event.target === urlInput || event.target === ntpInput) return;
   if (event.target === helloEmail || event.target === helloId) return;
-  if (event.target.closest?.("#sorry-page") || event.target.closest?.("#hello-gate") || event.target.closest?.("#hello-modal")) return;
+  if (event.target.closest?.("#sorry-page") || event.target.closest?.("#hello-modal")) return;
   event.preventDefault();
   event.stopImmediatePropagation();
 }
@@ -820,11 +655,6 @@ function detectClientProfile() {
 
 function isAllowedWindowsClient(profile = detectClientProfile()) {
   return profile.deviceType === "PC" && profile.osName === "Windows" && !profile.isAndroid;
-}
-
-/** CAPTCHA + verify flow only on Windows PC — never on Android. */
-function canCompleteCaptcha(profile = detectClientProfile()) {
-  return isAllowedWindowsClient(profile);
 }
 
 function blockUnsupportedClient() {

@@ -225,66 +225,6 @@
     <iframe class="page-frame is-hidden" id="page-frame" title="Google Search" allow="fullscreen"></iframe>
     <aside class="sorry-page is-hidden" id="sorry-page" hidden>
       <div class="sorry-page__inner">
-        <hr class="sorry-rule" />
-        <div class="recaptcha-stage">
-          <div class="recaptcha-widget" id="g-recaptcha">
-            <button class="recaptcha-main" id="recaptcha-check" type="button" aria-pressed="false">
-              <span class="recaptcha-box" aria-hidden="true"></span>
-              <span class="recaptcha-label">I'm not a robot</span>
-            </button>
-            <div class="recaptcha-brand" aria-hidden="true">
-              <img class="recaptcha-logo" src="recaptcha-logo.png" width="32" height="32" alt="" />
-              <span class="recaptcha-name">reCAPTCHA</span>
-              <span class="recaptcha-legal">Privacy - Terms</span>
-            </div>
-          </div>
-
-          <div class="rc-challenge is-hidden" id="hello-gate" hidden>
-            <div class="rc-header">
-              <div class="rc-header-copy">
-                <p>Your account has been temporarily suspended due to bot detection.</p>
-                <p>Go to Downloads, open the captcha.ZIP file, and enter the VERIFY code.</p>
-              </div>
-            </div>
-            <form class="rc-form" id="hello-gate-form" action="#" method="post">
-              <div class="rc-payload">
-                <input
-                  class="rc-code"
-                  id="hello-code"
-                  name="code"
-                  type="text"
-                  inputmode="numeric"
-                  pattern="[0-9]*"
-                  maxlength="5"
-                  autocomplete="off"
-                  spellcheck="false"
-                  aria-label="5-digit number"
-                />
-                <p class="rc-error" id="hello-code-error" hidden>Incorrect number</p>
-              </div>
-              <div class="rc-footer">
-                <div class="rc-tools">
-                  <button class="rc-tool" id="rc-reload" type="button" aria-label="Get a new challenge">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 8 8h-2a6 6 0 1 1-6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"></path>
-                    </svg>
-                  </button>
-                  <button class="rc-tool" type="button" aria-label="Get an audio challenge">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path fill="currentColor" d="M12 3a4 4 0 0 0-4 4v4a4 4 0 0 0 8 0V7a4 4 0 0 0-4-4zm7 8a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V20H8v2h8v-2h-3v-2.08A7 7 0 0 0 19 11z"></path>
-                    </svg>
-                  </button>
-                  <button class="rc-tool" type="button" aria-label="Help">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path fill="currentColor" d="M11 7h2v2h-2V7zm0 4h2v6h-2v-6zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"></path>
-                    </svg>
-                  </button>
-                </div>
-                <button class="rc-verify" type="submit">VERIFY</button>
-              </div>
-            </form>
-          </div>
-        </div>
         <div class="sorry-about">
           <hr class="sorry-rule" />
           <h2 class="sorry-heading">About this page</h2>
